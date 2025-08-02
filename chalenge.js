@@ -1,8 +1,6 @@
 // chalenge.js
 import 'dotenv/config';
 
-console.log('VERIFY_TOKEN is:', process.env.VERIFY_TOKEN);
-
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 export default function verifyWebhook(req, res) {
@@ -11,8 +9,10 @@ export default function verifyWebhook(req, res) {
   const challenge = req.query['hub.challenge'];
 
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+    console.log('🚀 WEBHOOK VERIFIED with challenge:', challenge);
     return res.status(200).send(challenge);
   }
 
+  console.warn('❌ WEBHOOK verification failed:', req.query);
   return res.sendStatus(403);
 }
