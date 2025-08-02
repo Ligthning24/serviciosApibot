@@ -1,6 +1,8 @@
 // chalenge.js
 import 'dotenv/config';
 
+console.log('VERIFY_TOKEN is:', process.env.VERIFY_TOKEN);
+
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 export default function verifyWebhook(req, res) {
