@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const TOKEN = process.env.ACCESS_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
-const WA_API = `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`;
+const WA_API = `https://graph.facebook.com/v23.0/${PHONE_NUMBER_ID}/messages`;
 
 async function sendTemplate(payload) {
   return axios.post(WA_API, payload, {
