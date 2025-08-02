@@ -1,29 +1,32 @@
 // mensajes.js
-const fs = require('fs');
-const { plantilla_seleccionMenu } = require('./templates_menu');
-const { parseSeleccion } = require('./utils/parseSeleccion');
-const { plantilla_confirmarOrden } = require('./templates_confirm');
-const { sendText } = require('./helpers/sendText');
+import fs from 'fs';
+import { plantilla_seleccionMenu }   from './templates_menu.js';
+import { parseSeleccion }            from './utils/parseSeleccion.js';
+import { plantilla_confirmarOrden }  from './templates_confirm.js';
+import { sendText }                  from './helpers/sendText.js';
 
-module.exports = async function handleMessages(req, res) {
-  fs.appendFileSync('debug_post_log.txt',
-    `${new Date().toISOString()} POST: ${JSON.stringify(req.body)}\n`);
+export default async function handleMessages(req, res) {
+  fs.appendFileSync(
+    'debug_post_log.txt',
+    `${new Date().toISOString()} POST: ${JSON.stringify(req.body)}\n`
+  );
 
   const msg = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
   if (!msg) return res.sendStatus(200);
 
-  const from = msg.from;
-  const text = msg.text?.body?.trim();
+  const from     = msg.from;
+  const text     = msg.text?.body?.trim();
   const buttonId = msg.interactive?.button_reply?.id;
 
   // 1) Selección múltiple
   if (text && /^[1-4](?:\s*,\s*[1-4])*$/g.test(text)) {
-    const seleccion = parseSeleccion(text);
+    const seleccion  = parseSeleccion(text);
     const listaLines = seleccion
       .map(i => `- ${i.producto} x${i.cantidad}`)
       .join('\n');
     const total = seleccion
       .reduce((sum, i) => sum + i.precio * i.cantidad, 0);
+
     await plantilla_confirmarOrden(from, listaLines, total);
     return res.sendStatus(200);
   }
@@ -41,7 +44,7 @@ module.exports = async function handleMessages(req, res) {
   }
 
   // 3) Comando "menu"
-  if (text && text.toLowerCase() === 'menu') {
+  if (text?.toLowerCase() === 'menu') {
     await plantilla_seleccionMenu(from);
     return res.sendStatus(200);
   }
@@ -49,4 +52,4 @@ module.exports = async function handleMessages(req, res) {
   // 4) Fallback
   await sendText(from, 'Escribe "menu" para comenzar.');
   return res.sendStatus(200);
-};
+}
