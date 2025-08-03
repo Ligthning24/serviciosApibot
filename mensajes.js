@@ -1,55 +1,15 @@
 // mensajes.js
-import fs from 'fs';
-import { plantilla_seleccionMenu }   from './templates_menu.js';
-import { parseSeleccion }            from './utils/parseSeleccion.js';
-import { plantilla_confirmarOrden }  from './templates_confirm.js';
-import { sendText }                  from './helpers/sendText.js';
+import 'dotenv/config';
+import { sendText } from './helpers/sendText.js';
 
 export default async function handleMessages(req, res) {
-  fs.appendFileSync(
-    'debug_post_log.txt',
-    `${new Date().toISOString()} POST: ${JSON.stringify(req.body)}\n`
-  );
-
+  // Extrae el primer mensaje entrante
   const msg = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-  if (!msg) return res.sendStatus(200);
-
-  const from     = msg.from;
-  const text     = msg.text?.body?.trim();
-  const buttonId = msg.interactive?.button_reply?.id;
-
-  // 1) Selección múltiple
-  if (text && /^[1-4](?:\s*,\s*[1-4])*$/g.test(text)) {
-    const seleccion  = parseSeleccion(text);
-    const listaLines = seleccion
-      .map(i => `- ${i.producto} x${i.cantidad}`)
-      .join('\n');
-    const total = seleccion
-      .reduce((sum, i) => sum + i.precio * i.cantidad, 0);
-
-    await plantilla_confirmarOrden(from, listaLines, total);
-    return res.sendStatus(200);
+  if (msg?.text?.body) {
+    console.log('▶️ Incoming:', msg.text.body);
+    // Responde con un echo
+    await sendText(msg.from, `Echo: ${msg.text.body}`);
   }
-
-  // 2) Botones de confirmación/cancelación
-  if (buttonId) {
-    if (buttonId === 'btn_confirmar') {
-      await sendText(from, '✅ Tu pedido ha sido confirmado!');
-    } else if (buttonId === 'btn_cancelar') {
-      await sendText(from, '❌ Pedido cancelado.');
-    } else {
-      await sendText(from, 'No entendí la opción.');
-    }
-    return res.sendStatus(200);
-  }
-
-  // 3) Comando "menu"
-  if (text?.toLowerCase() === 'menu') {
-    await plantilla_seleccionMenu(from);
-    return res.sendStatus(200);
-  }
-
-  // 4) Fallback
-  await sendText(from, 'Escribe "menu" para comenzar.');
+  // Siempre responde 200 OK a Meta
   return res.sendStatus(200);
 }
