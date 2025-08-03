@@ -16,6 +16,7 @@ export async function sendText(to, body) {
   console.log('📤 Sending message:');
   console.log('   to:', JSON.stringify(payload.to));
   console.log('   payload:', JSON.stringify(payload, null, 2));
+  console.log('> WA_API =', WA_API);
 
   try {
     return await axios.post(WA_API, payload, {
