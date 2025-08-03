@@ -8,15 +8,15 @@ const WA_API          = `https://graph.facebook.com/v23.0/${PHONE_NUMBER_ID}/mes
 export async function sendText(to, body) {
   const payload = {
     messaging_product: 'whatsapp',
-    to: to.toString(),      // asegúrate de que sea sólo dígitos
+    to: to.toString(),
     type: 'text',
     text: { body }
   };
 
-  console.log('📤 Sending message:');
-  console.log('   to:', JSON.stringify(payload.to));
-  console.log('   payload:', JSON.stringify(payload, null, 2));
+  // <-- Aquí pon el log para ver la URL completa
   console.log('> WA_API =', WA_API);
+  console.log('> Sending message to:', payload.to);
+  console.log('> Payload:', JSON.stringify(payload, null, 2));
 
   try {
     return await axios.post(WA_API, payload, {
