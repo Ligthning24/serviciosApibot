@@ -33,25 +33,27 @@ export default async function handleMessages(req, res) {
     await plantilla_seleccionMenu(from);
     return res.sendStatus(200);
   }
-  
-  // 4. Selección múltiple (patrón “1,2,2,3,1”)
-  if (/^[1-4](?:\s*,\s*[1-4])*$/g.test(text)) {
-    // parseas y envías confirmación…
-    const seleccion  = parseSeleccion(text);
-    const listaLines = seleccion.map(i=>`- ${i.producto} x${i.cantidad}`).join('\n');
-    const total      = seleccion.reduce((s,i)=>s + i.precio*i.cantidad, 0);
+
+  // 4) Selección numérica (1,2,2,3…) → plantilla confirmar_orden
+  if (text && /^[1-4](?:\s*,\s*[1-4])*$/g.test(text)) {
+    const seleccion = parseSeleccion(text);
+    const listaLines = seleccion
+      .map(i => `- ${i.producto} x${i.cantidad}`)
+      .join('\n');
+    const total = seleccion
+      .reduce((sum, i) => sum + i.precio * i.cantidad, 0);
     await plantilla_confirmarOrden(from, listaLines, total.toString());
     return res.sendStatus(200);
   }
 
-  // 5. Botones Confirmar/Cancelar
+ // 5) Botones de confirmación/cancelación
   if (buttonId) {
     if (buttonId === 'btn_confirmar') {
-      await sendText(from, '✅ Tu pedido ha sido confirmado.');
+      await sendText(from, '✅ Tu pedido ha sido confirmado. ¡Gracias por ordenar con nosotros!');
     } else if (buttonId === 'btn_cancelar') {
-      await sendText(from, '❌ Pedido cancelado.');
+      await sendText(from, '❌ Pedido cancelado. Escríbenos “menu” si quieres volver a intentarlo.');
     } else {
-      await sendText(from, 'No entendí esa opción.');
+      await sendText(from, 'No entendí esa opción. Escríbenos “menu” para ver el menú.');
     }
     return res.sendStatus(200);
   }
