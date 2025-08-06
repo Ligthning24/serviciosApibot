@@ -14,27 +14,24 @@ export default async function handleMessages(req, res) {
   const text     = msg.text?.body?.trim();
   const buttonId = msg.interactive?.button_reply?.id;
 
-   // Si escribe “hola” enviamos bienvenida
+   // Si escribe uno de estos enviamos la bienvenida
   if (text && /^(hola|hi|hello)$/i.test(text)) {
     await plantilla_bienvenida(from);
     return res.sendStatus(200);
   }
 
-  // Si pulsa el botón “Menu” de la plantilla bienvenida  
-  // (asegúrate de que el id coincide con el que configuraste en Meta)
+  // Si pulsa el botón “Menu” de la plantilla bienvenida ( no sirve xd)
   if (buttonId === 'Menu' || buttonId === 'btn_menu') {
-    // 👉 Aquí lanzas directamente tu plantilla de selección múltiple
     await plantilla_seleccionMenu(from);
     return res.sendStatus(200);
   }
-
-  //  - Si escribe “menu” por texto, también puedes reenviar la plantilla:
-  if (text?.toLowerCase() === 'menu') {
+  //tambirn si escribe menu por texto se reenviar la plantilla del menu
+  if (text?.toLowerCase() === 'menu' || text?.toLowerCase() === 'Menu') {
     await plantilla_seleccionMenu(from);
     return res.sendStatus(200);
   }
-
-  // 4) Selección numérica (1,2,2,3…) → plantilla confirmar_orden
+  //Selección donde se supone que al escribir (1,2,2,3…) puede escojer mas de una cosa y repetida
+  //no sirve xd
   if (text && /^[1-4](?:\s*,\s*[1-4])*$/g.test(text)) {
     const seleccion = parseSeleccion(text);
     const listaLines = seleccion
@@ -45,7 +42,6 @@ export default async function handleMessages(req, res) {
     await plantilla_confirmarOrden(from, listaLines, total.toString());
     return res.sendStatus(200);
   }
-
  // 5) Botones de confirmación/cancelación
   if (buttonId) {
     if (buttonId === 'btn_confirmar') {
@@ -58,7 +54,6 @@ export default async function handleMessages(req, res) {
     return res.sendStatus(200);
   }
 
-  // 6. Fallback final
   await sendText(from, 'Escribe “menu” para ver nuestros productos.');
   return res.sendStatus(200);
 }

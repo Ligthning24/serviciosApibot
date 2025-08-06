@@ -24,6 +24,21 @@ export async function plantilla_confirmarOrden(to, listaItems, total) {
       ]
     }
   };
+  try {
+    return await axios.post(WA_API, payload, {
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
+  } catch (err) {
+    console.error(
+      "Error enviando template:",
+      err.response?.status,
+      JSON.stringify(err.response?.data, null, 2)
+    );
+    throw err;
+  }
 
   return axios.post(WA_API, payload, {
     headers: {
@@ -31,4 +46,5 @@ export async function plantilla_confirmarOrden(to, listaItems, total) {
       'Content-Type': 'application/json'
     }
   });
+  
 }
