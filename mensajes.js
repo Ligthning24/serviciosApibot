@@ -30,16 +30,23 @@ export default async function handleMessages(req, res) {
     await plantilla_seleccionMenu(from);
     return res.sendStatus(200);
   }
-  //Selección donde se supone que al escribir (1,2,2,3…) puede escojer mas de una cosa y repetida
-  //no sirve xd
+  // Selección numérica: ya no construimos texto con '\n'
   if (text && /^[1-4](?:\s*,\s*[1-4])*$/g.test(text)) {
     const seleccion = parseSeleccion(text);
-    const listaLines = seleccion
-      .map(i => `- ${i.producto} x${i.cantidad}`)
-      .join('\n');
-    const total = seleccion
-      .reduce((sum, i) => sum + i.precio * i.cantidad, 0);
-    await plantilla_confirmarOrden(from, listaLines, total.toString());
+
+    // 1) Creamos array de strings "2 x Producto A"
+    const items = seleccion.map(i => `${i.cantidad} x ${i.producto}`);
+
+    // 2) Calculamos total como número
+    const total = seleccion.reduce((sum, i) => sum + i.precio * i.cantidad, 0);
+
+    // 3) Llamamos a la plantilla con items[] y total
+    try {
+      await plantilla_confirmarOrden(from, items, total);
+    } catch (err) {
+      console.error('Error enviando confirmarOrden:', err);
+      await sendText(from, 'Lo siento, hubo un error procesando tu pedido. Intenta de nuevo más tarde.');
+    }
     return res.sendStatus(200);
   }
  // 5) Botones de confirmación/cancelación

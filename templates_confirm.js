@@ -5,7 +5,29 @@ const TOKEN           = process.env.ACCESS_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const WA_API          = `https://graph.facebook.com/v23.0/${PHONE_NUMBER_ID}/messages`;
 
-export async function plantilla_confirmarOrden(to, listaItems, total) {
+/**
+ * Elimina saltos de línea, tabs y colapsa más de 4 espacios
+ */
+function cleanText(str) {
+  return str
+    .replace(/[\r\n\t]+/g, ' ')     // quita \r, \n y \t
+    .replace(/ {5,}/g, '    ')      // colapsa >4 espacios en 4 espacios
+    .trim();
+}
+
+/**
+ * Envía la plantilla de confirmación de orden.
+ * @param {string|number} to        — número destino
+ * @param {string[]}      items     — array de strings tipo "2 x Producto A"
+ * @param {number}        total     — total del pedido
+ */
+export async function plantilla_confirmarOrden(to, items, total) {
+  // 1. Une los ítems con coma y espacio
+  const listaRaw = items.join(', ');
+  // 2. Sanitiza el texto resultante
+  const listaClean = cleanText(listaRaw);
+  const totalClean = cleanText(total.toString());
+
   const payload = {
     messaging_product: 'whatsapp',
     to: to.toString(),
@@ -17,28 +39,13 @@ export async function plantilla_confirmarOrden(to, listaItems, total) {
         {
           type: 'body',
           parameters: [
-            { type: 'text', text: listaItems },
-            { type: 'text', text: total.toString() }
+            { type: 'text', text: listaClean },
+            { type: 'text', text: totalClean }
           ]
         }
       ]
     }
   };
-  try {
-    return await axios.post(WA_API, payload, {
-      headers: {
-        Authorization: `Bearer ${TOKEN}`,
-        'Content-Type': 'application/json'
-      }
-    });
-  } catch (err) {
-    console.error(
-      "Error enviando template:",
-      err.response?.status,
-      JSON.stringify(err.response?.data, null, 2)
-    );
-    throw err;
-  }
 
   return axios.post(WA_API, payload, {
     headers: {
@@ -46,5 +53,4 @@ export async function plantilla_confirmarOrden(to, listaItems, total) {
       'Content-Type': 'application/json'
     }
   });
-  
 }
