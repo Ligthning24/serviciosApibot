@@ -88,11 +88,13 @@ async function getMenu() {
 // ====== FUNCIÓN PARA ENVIAR MENSAJE ======
 async function sendTextMessage(to, message) {
   try {
+    console.log('Enviando a:', to); // <-- para depuración
+
     await axios.post(
-      `https://graph.facebook.com/v20.0/${process.env.PHONE_NUMBER_ID}/messages`,
+      `https://graph.facebook.com/v23.0/${process.env.PHONE_NUMBER_ID}/messages`,
       {
         messaging_product: 'whatsapp',
-        to,
+        to, // asegúrate que aquí esté el número correcto
         text: { body: message }
       },
       {
