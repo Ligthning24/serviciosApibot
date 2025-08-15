@@ -111,4 +111,26 @@ async function confirmarPedido(from) {
     "INSERT INTO orden_pedido (total, estado) VALUES ($1, 'PENDIENTE') RETURNING id_compra",
     [total]
   );
-  cons
+  const idCompra = insertPedido.rows[0].id_compra;
+
+  for (let prod of productos) {
+    await pool.query(
+      "INSERT INTO orden_detalle (id_compra, id_producto, cantidad, precio_unitario) VALUES ($1, $2, $3, $4)",
+      [idCompra, prod.id_producto, 1, prod.precio]
+    );
+  }
+
+  const lista = productos
+    .map(p => `${p.nombre} - $${p.precio}`)
+    .join("\n");
+
+  await enviarPlantillaWhatsApp(from, "pedido_confirmado", [
+    lista,
+    total.toString()
+  ]);
+
+  // Limpia el pedido en memoria
+  delete pedidosEnProceso[from];
+}
+
+module.exports = handleIncomingMessage;
