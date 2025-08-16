@@ -1,7 +1,7 @@
-// src/controllers/webhook.controller.js
 import { env } from '../config/env.js';
-import { sendTextMessage, sendTemplate } from '../services/whatsapp.service.js';
-import { getMenuText, getProductsWithQty, formatOrderList } from '../services/menu.service.js';
+import { sendTextMessage, sendTemplate, sendOrderSummary } from '../services/whatsapp.service.js';
+import { getMenuText, parseIdsCsvToCounts, mergeCounts, buildItemsFromCart, formatOrderList } from '../services/menu.service.js';
+import { getSession, clearSession } from '../state/session.store.js';
 
 const numberListRegex = /^\d+(,\d+)*$/;
 
@@ -18,7 +18,7 @@ export function verifyWebhook(req, res) {
 }
 
 export async function handleWebhook(req, res) {
-  // 1) Responder de inmediato para no rebasar 10s
+  // Responder inmediato para no exceder 10s
   res.sendStatus(200);
 
   try {
@@ -28,9 +28,12 @@ export async function handleWebhook(req, res) {
 
     const from = message.from;
     const text = (message.text?.body || '').trim().toLowerCase();
-    console.log(`📩 Mensaje de ${from}: ${text}`);
+    console.log(`📩 ${from}: ${text}`);
 
-    // 2) Procesar ya sin bloquear la respuesta
+    // Obtén sesión (carrito)
+    const session = getSession(from);
+
+    // --- intents ---
     if (text === 'hola') {
       await sendTemplate(from, 'saludo_principal');
       return;
@@ -42,40 +45,58 @@ export async function handleWebhook(req, res) {
       return;
     }
 
+    if (text === 'si' || text === 'sí') {
+      // Sugerimos que mande números o ver menú
+      await sendTextMessage(from, 'Perfecto. Envíame los números separados por coma (ej. 1,2) o escribe "menu" para ver productos.');
+      return;
+    }
+
     if (numberListRegex.test(text)) {
-      const { items, total } = await getProductsWithQty(text);
+      // 1) sumar los nuevos ids al carrito actual
+      const newCounts = parseIdsCsvToCounts(text);
+      session.cart = mergeCounts(session.cart, newCounts);
+
+      // 2) construir items desde el carrito acumulado
+      const { items, total } = await buildItemsFromCart(session.cart);
       if (!items.length) {
-        await sendTextMessage(from, 'No encontré productos con esos IDs. Inténtalo de nuevo.');
+        await sendTextMessage(from, 'No encontré productos con esos IDs. Inténtalo de nuevo o escribe "menu".');
         return;
       }
 
       const lista = formatOrderList(items);
       const totalFmt = `$${total.toFixed(2)}`;
 
-      // 3) Enviar en paralelo (plantilla + mensaje guía), más rápido que en serie
-      await Promise.allSettled([
-        sendTemplate(from, 'detalle_producto', [lista, totalFmt]),
-        sendTextMessage(from, '¿Añadir más a la orden?')
-      ]);
+      // 3) Enviar resumen (plantilla si se puede, o fallback en texto)
+      await sendOrderSummary(from, lista, totalFmt);
       return;
     }
 
     if (text === 'confirmar pedido') {
-      await sendTemplate(from, 'pedido_ya_confirmado');
+      // Aquí podrías persistir la orden en BD con session.cart -> (orden/detalle_orden)
+      await sendTemplate(from, 'pedido_ya_confirmado').catch(async () => {
+        await sendTextMessage(from, '✅ Pedido confirmado. ¡Gracias!');
+      });
+      clearSession(from);
       return;
     }
 
     if (text === 'cancelar pedido') {
-      await sendTemplate(from, 'pedido_cancelado');
+      await sendTemplate(from, 'pedido_cancelado').catch(async () => {
+        await sendTextMessage(from, '❌ Pedido cancelado.');
+      });
+      clearSession(from);
       return;
     }
 
     if (text === 'ayuda') {
-      await sendTemplate(from, 'ayuda');
+      await sendTemplate(from, 'ayuda').catch(async () => {
+        await sendTextMessage(from, 'Comandos: "menu", números (1,2), "confirmar pedido", "cancelar pedido".');
+      });
       return;
     }
 
-    await sendTextMessage(from, 'No entendí tu mensaje. Escribe "menu" para ver productos o "ayuda".');
+    // Por defecto
+    await sendTextMessage(from, 'No entendí tu mensaje. Escribe "menu" para ver productos o manda los números (ej. 1,2).');
   } catch (err) {
     console.error('Error en webhook (async):', err);
   }
