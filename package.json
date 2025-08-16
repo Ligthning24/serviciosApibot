@@ -1,7 +1,7 @@
 {
   "name": "servicios2",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/index.js",
   "type": "module",
   "dependencies": {
     "accepts": "^2.0.0",
@@ -99,7 +99,8 @@
     "xtend": "^4.0.2"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node src/index.js",
+    "dev": "node src/index.js"
   },
   "repository": {
     "type": "git",
