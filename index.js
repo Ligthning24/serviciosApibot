@@ -11,7 +11,7 @@ app.use(express.json());
 // Conexión a PostgreSQL
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  //ssl: { rejectUnauthorized: false }
 });
 
 // Ruta simple
@@ -86,27 +86,36 @@ async function getMenu() {
 }
 
 // ====== FUNCIÓN PARA ENVIAR MENSAJE ======
-async function sendTextMessage(to, message) {
-  try {
-    console.log('Enviando a:', to); // <-- para depuración
+function normalizePhone(number) {
+  // Si empieza con 52 y no tiene el 1 después, se lo agregamos
+  if (number.startsWith("52") && !number.startsWith("521")) {
+    return "521" + number.slice(2);
+  }
+  return number;
+}
 
+async function sendTextMessage(to, message) {
+  const normalizedTo = normalizePhone(to);
+  console.log("Enviando a:", normalizedTo);
+  
+  try {
     await axios.post(
       `https://graph.facebook.com/v23.0/${process.env.PHONE_NUMBER_ID}/messages`,
       {
-        messaging_product: 'whatsapp',
-        to, // asegúrate que aquí esté el número correcto
+        messaging_product: "whatsapp",
+        to: normalizedTo,
         text: { body: message }
       },
       {
         headers: {
           Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json"
         }
       }
     );
-    console.log(`✅ Mensaje enviado a ${to}`);
+    console.log(`✅ Mensaje enviado a ${normalizedTo}`);
   } catch (error) {
-    console.error('❌ Error enviando mensaje:', error.response?.data || error.message);
+    console.error("❌ Error enviando mensaje:", error.response?.data || error.message);
   }
 }
 
