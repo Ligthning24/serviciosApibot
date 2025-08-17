@@ -6,7 +6,8 @@ import {
   parseIdsCsvToCounts,
   mergeCounts,
   buildItemsFromCart,
-  formatOrderList
+  formatOrderList,
+  formatOrderListSingleLine
 } from '../services/menu.service.js';
 import { getSession, clearSession } from '../state/session.store.js';
 
@@ -80,14 +81,13 @@ export async function handleWebhook(req, res) {
         await sendTextMessage(from, 'No encontré productos con esos IDs. Inténtalo de nuevo o escribe "menu".');
         return;
       }
-
-      // c) Formatear variables de la PLANTILLA (sin mensajes extra)
-      const lista = formatOrderList(items);        // multilínea con viñetas
-      const totalFmt = `$${total.toFixed(2)}`;     // ej. $240.00
+      // variable 1 en UNA línea (sin saltos)
+      const lista1line = formatOrderListSingleLine(items);
+      const totalFmt = `$${total.toFixed(2)}`;
 
       // d) Enviar SÓLO la plantilla (ya contiene los botones)
       // Asegúrate que "detalle_producto" tenga EXACTAMENTE 2 variables de cuerpo: {{1}} lista, {{2}} total
-      await sendTemplate(from, 'detalle_producto', [lista, totalFmt]);
+      await sendTemplate(from, 'detalle_producto', [lista1line, totalFmt]);
       return;
     }
 

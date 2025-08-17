@@ -104,3 +104,12 @@ export function formatOrderList(items) {
     .map(it => `• ${it.nombre} $${it.precio.toFixed(2)} - x${it.qty}`)
     .join('\n');
 }
+
+// Devuelve la lista en UNA sola línea para usar como parámetro de plantilla
+export function formatOrderListSingleLine(items) {
+  if (!items?.length) return '';
+  // Ej: "Refresco $25.00 - x3 · Coctel grande $130.00 - x1 · Tostada $60.00 - x2"
+  return items
+    .map(it => `${it.nombre} $${it.precio.toFixed(2)} - x${it.qty}`)
+    .join(' · ');
+}

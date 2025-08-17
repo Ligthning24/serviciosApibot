@@ -63,6 +63,38 @@ export async function sendTemplate(to, templateName, variables = []) {
   return data;
 }
 
+function sanitizeTemplateParam(value) {
+  if (value == null) return '';
+  return String(value)
+    .replace(/[\r\n\t]+/g, ' ')   // quita saltos y tabs
+    .replace(/\s{2,}/g, ' ')      // colapsa espacios consecutivos
+    .trim();
+}
+
+export async function sendTemplate(to, templateName, variables = []) {
+  const normalizedTo = normalizePhone(to);
+
+  const body = {
+    messaging_product: 'whatsapp',
+    to: normalizedTo,
+    type: 'template',
+    template: { name: templateName, language: { code: 'es_MX' } }
+  };
+
+  if (variables.length) {
+    body.template.components = [
+      {
+        type: 'body',
+        parameters: variables.map(v => ({ type: 'text', text: sanitizeTemplateParam(v) }))
+      }
+    ];
+  }
+
+  const { data } = await postWithRetry('/messages', body);
+  return data;
+}
+
+
 /**
  * Envía el resumen usando PLANTILLA; si falla, manda TEXTO con el mismo contenido.
  */
