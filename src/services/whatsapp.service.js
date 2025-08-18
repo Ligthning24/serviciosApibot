@@ -5,7 +5,7 @@ import https from 'https';
 import { env } from '../config/env.js';
 import { normalizePhone } from '../utils/phone.js';
 
-// Agents con keep-alive para reusar conexiones (mejor latencia)
+// Agents con keep-alive para reusar conexiones
 const httpAgent = new http.Agent({
   keepAlive: true,
   maxSockets: 50,
@@ -69,7 +69,7 @@ function sanitizeTemplateParam(value) {
 }
 
 /**
- * Envía mensaje de TEXTO simple.
+ * Envía mensaje de texto.
  */
 export async function sendTextMessage(to, message) {
   const normalizedTo = normalizePhone(to);
@@ -83,8 +83,8 @@ export async function sendTextMessage(to, message) {
 }
 
 /**
- * Envía una PLANTILLA (template) con variables ya sanitizadas.
- * Importante: los parámetros deben ir en una sola línea (sin \n, \t, etc.).
+ * Envía un template con variables ya sanitizadas.
+ * los parámetros deben ir en una sola línea (sin \n, \t, etc.).
  */
 export async function sendTemplate(to, templateName, variables = []) {
   const normalizedTo = normalizePhone(to);
@@ -116,7 +116,7 @@ export async function sendTemplate(to, templateName, variables = []) {
 }
 
 /**
- * (Opcional) Ayuda para enviar el resumen con plantilla,
+ * Ayuda para enviar el resumen con plantilla,
  * y si la plantilla falla por cualquier motivo, hace fallback a texto.
  */
 export async function sendOrderSummaryWithFallback(to, listaSingleLine, totalFmt) {

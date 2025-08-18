@@ -20,7 +20,7 @@ export async function getMenuText() {
       menuText += `${p.id_producto}. ${p.nombre} - $${precio.toFixed(2)}\n`;
     });
 
-    menuText += '\nResponde con los números separados por coma (ej. 1,2,3).';
+    menuText += '\nResponde con los números separados por coma (ej. 1,2,3,1,2,2).';
     return menuText;
   } catch (err) {
     console.error('Error consultando menú:', err);

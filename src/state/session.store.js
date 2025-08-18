@@ -17,7 +17,7 @@ export function clearSession(phone) {
   sessions.delete(phone);
 }
 
-/** (Opcional) Limpia solo el carrito, conservando la sesión */
+/**Limpia solo el carrito, conservando la sesión */
 export function clearCart(phone) {
   const s = sessions.get(phone);
   if (s) s.cart = new Map();

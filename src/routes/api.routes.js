@@ -4,7 +4,7 @@ import { getProductsByIds } from '../services/menu.service.js';
 const router = Router();
 
 /**
- * Endpoint opcional si quieres exponer productos vía API
+ * Endpoint que es opcional por para exponer productos usando API
  * GET /api/productos?ids=1,2,3
  */
 router.get('/productos', async (req, res) => {
