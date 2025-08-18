@@ -69,36 +69,63 @@ export async function handleWebhook(req, res) {
       return;
     }
 
+    // ... arriba ya dejas tal cual
+
     // 3) El usuario envía números (agregar al carrito)
     if (numberListRegex.test(text)) {
-      // a) Sumar nuevos IDs al carrito acumulado
       const newCounts = parseIdsCsvToCounts(text);
-      session.cart = mergeCounts(session.cart, newCounts);
+      session.cart = mergeCounts(session.cart, newCounts); // <- retorna Map
 
-      // b) Construir items y total desde carrito
       const { items, total } = await buildItemsFromCart(session.cart);
       if (!items.length) {
         await sendTextMessage(from, 'No encontré productos con esos IDs. Inténtalo de nuevo o escribe "menu".');
         return;
       }
-      // variable 1 en UNA línea (sin saltos)
+
       const lista1line = formatOrderListSingleLine(items);
       const totalFmt = `$${total.toFixed(2)}`;
-
-      // d) Enviar SÓLO la plantilla (ya contiene los botones)
-      // Asegúrate que "detalle_producto" tenga EXACTAMENTE 2 variables de cuerpo: {{1}} lista, {{2}} total
       await sendTemplate(from, 'detalle_producto', [lista1line, totalFmt]);
       return;
     }
 
-    // 4) Confirmación del pedido (botón/quick reply)
-    // Cuando el usuario escribe "confirmar pedido"
+    // ✅ CONFIRMAR PEDIDO (texto ya está en minúsculas)
+    console.log('Texto normalizado:', JSON.stringify(text));
     if (text === 'confirmar pedido') {
-      const session = getSession(from); // tu carrito en memoria
-      if (!session || !session.cart || Object.keys(session.cart).length === 0) {
+      const sess = getSession(from); // { cart: Map() }
+      if (!sess || !sess.cart || sess.cart.size === 0) {
         await sendTextMessage(from, 'No tienes productos en tu carrito. Escribe "menu" para empezar.');
         return;
       }
+
+      const { items, total } = await buildItemsFromCart(sess.cart);
+      const lista = formatOrderList(items); // multilínea con viñetas
+
+      const resumen = `✅ Tu pedido ha sido registrado.
+
+Detalle del pedido:
+${lista}
+
+Total: $${total.toFixed(2)}
+
+Gracias por tu compra 🎉`;
+
+      await sendTextMessage(from, resumen);
+
+      // Limpia correctamente (como es Map)
+      clearSession(from);           // <-- opción A: borra toda la sesión
+      // sess.cart = new Map();     // <-- opción B: solo vacía el carrito
+      return;
+    }
+
+    // 5) Cancelar pedido
+    if (text === 'cancelar pedido') {
+      await sendTemplate(from, 'pedido_cancelado').catch(async () => {
+        await sendTextMessage(from, '❌ Pedido cancelado.');
+      });
+      clearSession(from); // importante limpiar el Map
+      return;
+    }
+
 
       // Construir items y total
       const { items, total } = await buildItemsFromCart(session.cart);
@@ -116,10 +143,6 @@ Gracias por tu compra 🎉`;
 
       // Enviar mensaje de texto normal (no plantilla)
       await sendTextMessage(from, resumen);
-
-      // (Opcional) Aquí podrías guardar la orden en la BD
-      // await saveOrderToDb(from, items, total);
-
       // Limpiar carrito después de confirmar
       session.cart = {};
       return;
@@ -143,7 +166,7 @@ Gracias por tu compra 🎉`;
     }
 
     // 7) Mensaje por defecto
-    await sendTextMessage(from, 'No entendí tu mensaje. Escribe "menu" para ver productos.');
+    await sendTextMessage(from, 'No entendí tu mensaje. Escribe "menu" para ver productos, o "confirmar pedido" para proceder con la compra, o "cancelar pedido" para cancelar.');
   } catch (err) {
     console.error('Error en webhook (async):', err);
   }
