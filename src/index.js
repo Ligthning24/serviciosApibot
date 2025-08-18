@@ -5,12 +5,13 @@ import { env } from './config/env.js';
 
 const app = express();
 
-// Necesario para leer JSON entrante desde Meta
+//para leer JSON entrante desde Meta
 app.use(express.json({ limit: '1mb' }));
 
 // Ruta simple de salud
 app.get('/', (_req, res) => {
-  res.send('Servidor activo ✅');
+  console.log("GET / (health check)")
+  res.send('Servidor activo');
 });
 
 // Rutas
