@@ -1,7 +1,8 @@
+// src/services/menu.service.js
 import { pool } from '../config/db.js';
 
 /**
- * Devuelve el menú en formato texto.
+ * Devuelve el menú en formato texto para WhatsApp.
  */
 export async function getMenuText() {
   try {
@@ -15,7 +16,8 @@ export async function getMenuText() {
 
     let menuText = '📋 *Menú disponible:*\n';
     result.rows.forEach(p => {
-      menuText += `${p.id_producto}. ${p.nombre} - $${p.precio}\n`;
+      const precio = Number(p.precio) || 0;
+      menuText += `${p.id_producto}. ${p.nombre} - $${precio.toFixed(2)}\n`;
     });
 
     menuText += '\nResponde con los números separados por coma (ej. 1,2,3).';
@@ -27,27 +29,8 @@ export async function getMenuText() {
 }
 
 /**
- * Obtiene productos por lista de IDs separados por coma "1,2,3"
+ * Parsea "1,2,1,4" a Map<id, qty>
  */
-export async function getProductsByIds(idsCsv) {
-  // Sanitiza lista simple de enteros:
-  const ids = idsCsv
-    .split(',')
-    .map(x => x.trim())
-    .filter(Boolean)
-    .map(Number)
-    .filter(n => Number.isInteger(n));
-
-  if (ids.length === 0) return [];
-
-  // Construye placeholders $1,$2...
-  const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
-  const sql = `SELECT id_producto, nombre, precio FROM productos WHERE id_producto IN (${placeholders})`;
-
-  const { rows } = await pool.query(sql, ids);
-  return rows;
-}
-
 export function parseIdsCsvToCounts(idsCsv) {
   const counts = new Map();
   if (!idsCsv) return counts;
@@ -58,10 +41,16 @@ export function parseIdsCsvToCounts(idsCsv) {
       counts.set(n, (counts.get(n) || 0) + 1);
     }
   });
+
   return counts;
 }
 
+/**
+ * Suma cantidades de addMap sobre baseMap (ambos Map<number, number>)
+ * Devuelve el mismo Map de base (mutado) para encadenar.
+ */
 export function mergeCounts(baseMap, addMap) {
+  if (!(baseMap instanceof Map)) baseMap = new Map();
   for (const [k, v] of addMap.entries()) {
     baseMap.set(k, (baseMap.get(k) || 0) + v);
   }
@@ -69,12 +58,15 @@ export function mergeCounts(baseMap, addMap) {
 }
 
 /**
- * Dado un Map<id, qty>, consulta los productos y devuelve items + total
+ * Desde un carrito (Map<id, qty>) consulta productos y arma items + total
+ * items: [{ id, nombre, precio, qty, lineTotal }]
  */
 export async function buildItemsFromCart(counts) {
-  const ids = Array.from(counts.keys());
-  if (!ids.length) return { items: [], total: 0 };
+  if (!(counts instanceof Map) || counts.size === 0) {
+    return { items: [], total: 0 };
+  }
 
+  const ids = Array.from(counts.keys());
   const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
   const sql = `SELECT id_producto, nombre, precio FROM productos WHERE id_producto IN (${placeholders})`;
 
@@ -83,7 +75,7 @@ export async function buildItemsFromCart(counts) {
   const items = rows
     .map(r => {
       const qty = counts.get(r.id_producto) || 0;
-      const price = Number(r.precio);
+      const price = Number(r.precio) || 0;
       return {
         id: r.id_producto,
         nombre: r.nombre,
@@ -98,6 +90,12 @@ export async function buildItemsFromCart(counts) {
   return { items, total };
 }
 
+/**
+ * Formatea la lista con viñetas y saltos de línea (para mensajes de texto)
+ * Ej:
+ * • Refresco $25.00 - x2
+ * • Coctel grande $130.00 - x1
+ */
 export function formatOrderList(items) {
   if (!items?.length) return '';
   return items
@@ -105,10 +103,14 @@ export function formatOrderList(items) {
     .join('\n');
 }
 
-// Devuelve la lista en UNA sola línea para usar como parámetro de plantilla
+/**
+ * Formatea la lista en UNA sola línea (para parámetros de plantilla)
+ * (Meta no permite \n/\t en parámetros de plantilla)
+ * Ej:
+ * Refresco $25.00 - x2 · Coctel grande $130.00 - x1
+ */
 export function formatOrderListSingleLine(items) {
   if (!items?.length) return '';
-  // Ej: "Refresco $25.00 - x3 · Coctel grande $130.00 - x1 · Tostada $60.00 - x2"
   return items
     .map(it => `${it.nombre} $${it.precio.toFixed(2)} - x${it.qty}`)
     .join(' · ');
