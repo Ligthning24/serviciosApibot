@@ -92,12 +92,36 @@ export async function handleWebhook(req, res) {
     }
 
     // 4) Confirmación del pedido (botón/quick reply)
+    // Cuando el usuario escribe "confirmar pedido"
     if (text === 'confirmar pedido') {
-      // Aquí puedes persistir la orden en BD usando session.cart si quieres
-      await sendTemplate(from, 'pedido_ya_confirmado').catch(async () => {
-        await sendTextMessage(from, '✅ Pedido confirmado. ¡Gracias!');
-      });
-      clearSession(from);
+      const session = getSession(from); // tu carrito en memoria
+      if (!session || !session.cart || Object.keys(session.cart).length === 0) {
+        await sendTextMessage(from, 'No tienes productos en tu carrito. Escribe "menu" para empezar.');
+        return;
+      }
+
+      // Construir items y total
+      const { items, total } = await buildItemsFromCart(session.cart);
+      const lista = formatOrderList(items);
+
+      const resumen =
+        `✅ Tu pedido ha sido registrado.
+
+Detalle del pedido:
+${lista}
+
+Total: $${total.toFixed(2)}
+
+Gracias por tu compra 🎉`;
+
+      // Enviar mensaje de texto normal (no plantilla)
+      await sendTextMessage(from, resumen);
+
+      // (Opcional) Aquí podrías guardar la orden en la BD
+      // await saveOrderToDb(from, items, total);
+
+      // Limpiar carrito después de confirmar
+      session.cart = {};
       return;
     }
 
@@ -119,7 +143,7 @@ export async function handleWebhook(req, res) {
     }
 
     // 7) Mensaje por defecto
-    await sendTextMessage(from, 'No entendí tu mensaje. Escribe "menu" para ver productos o manda los números (ej. 1,2).');
+    await sendTextMessage(from, 'No entendí tu mensaje. Escribe "menu" para ver productos.');
   } catch (err) {
     console.error('Error en webhook (async):', err);
   }
