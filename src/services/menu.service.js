@@ -29,6 +29,27 @@ export async function getMenuText() {
 }
 
 /**
+ * (Para /api/productos) Obtiene productos por lista CSV de IDs: "1,2,3"
+ */
+export async function getProductsByIds(idsCsv) {
+  const ids = String(idsCsv || '')
+    .split(',')
+    .map(s => Number(String(s).trim()))
+    .filter(n => Number.isInteger(n));
+
+  if (ids.length === 0) return [];
+
+  const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
+  const sql = `SELECT id_producto, nombre, precio
+               FROM productos
+               WHERE id_producto IN (${placeholders})
+               ORDER BY id_producto`;
+
+  const { rows } = await pool.query(sql, ids);
+  return rows;
+}
+
+/**
  * Parsea "1,2,1,4" a Map<id, qty>
  */
 export function parseIdsCsvToCounts(idsCsv) {
@@ -68,7 +89,9 @@ export async function buildItemsFromCart(counts) {
 
   const ids = Array.from(counts.keys());
   const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
-  const sql = `SELECT id_producto, nombre, precio FROM productos WHERE id_producto IN (${placeholders})`;
+  const sql = `SELECT id_producto, nombre, precio
+               FROM productos
+               WHERE id_producto IN (${placeholders})`;
 
   const { rows } = await pool.query(sql, ids);
 
@@ -91,10 +114,7 @@ export async function buildItemsFromCart(counts) {
 }
 
 /**
- * Formatea la lista con viñetas y saltos de línea (para mensajes de texto)
- * Ej:
- * • Refresco $25.00 - x2
- * • Coctel grande $130.00 - x1
+ * Formatea lista multilínea (para mensajes de texto)
  */
 export function formatOrderList(items) {
   if (!items?.length) return '';
@@ -104,10 +124,8 @@ export function formatOrderList(items) {
 }
 
 /**
- * Formatea la lista en UNA sola línea (para parámetros de plantilla)
+ * Formatea lista en UNA sola línea (para parámetros de plantilla)
  * (Meta no permite \n/\t en parámetros de plantilla)
- * Ej:
- * Refresco $25.00 - x2 · Coctel grande $130.00 - x1
  */
 export function formatOrderListSingleLine(items) {
   if (!items?.length) return '';
