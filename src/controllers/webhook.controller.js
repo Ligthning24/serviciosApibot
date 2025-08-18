@@ -130,7 +130,7 @@ Gracias por tu compra 🎉`;
     // Por defecto
     await sendTextMessage(
       from,
-      'No entendí tu mensaje. Escribe "menu" para ver y elegir de nuevo los productos, o "confirmar pedido"/"cancelar pedido".'
+      'No entendí tu mensaje. Por favor escribe "menu" para ver y elegir de nuevo los productos, o "confirmar pedido"/"cancelar pedido". Si necesitas ayuda escribe "Ayuda".'
     );
   } catch (err) {
     console.error('Error en webhook (async):', err);
