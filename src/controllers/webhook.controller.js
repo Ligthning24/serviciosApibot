@@ -42,7 +42,6 @@ export async function handleWebhook(req, res) {
     let text = (msg.text?.body || '').trim().toLowerCase();
 
     // 👉 Detectar si es respuesta de botón interactivo
-    // 👉 Detectar si es respuesta de botón interactivo
     if (msg.type === "interactive" && msg.interactive?.type === "button_reply") {
       const buttonId = msg.interactive.button_reply.id;   // <-- tal cual de la plantilla
       const buttonTitle = msg.interactive.button_reply.title;
@@ -76,9 +75,10 @@ export async function handleWebhook(req, res) {
 
     // Saludo
     if (text === 'hola') {
-      await sendTemplate(from, 'saludo_principal').catch(async () => {
-        await sendTextMessage(from, '¡Hola! Escribe "menu" para ver productos.');
-      });
+      await sendInteractiveButtons(from, '¡Hola y bienvenido!\nBienvenido(a) a nuestro servicio de pedidos.\n\nSelecciona una opción:', [
+        { id: "ver productos", title: "Ver productos" },
+        { id: "ayuda", title: "Ayuda" }
+      ]);
       return;
     }
 
@@ -93,7 +93,7 @@ export async function handleWebhook(req, res) {
     if (numberListRegex.test(text)) {
       const newCounts = parseIdsCsvToCounts(text);
 
-      // IDs válidos del menú (ajústalos si tu menú cambia dinámicamente)
+      // id validos del menu que hay que ajustalos si el menu cambia dinámicamente
       const validIds = [1, 2, 3, 4, 5, 6];
       const invalidIds = [...newCounts.keys()].filter(id => !validIds.includes(id));
 
@@ -118,7 +118,11 @@ export async function handleWebhook(req, res) {
       const lista1line = formatOrderListSingleLine(items);
       const totalFmt = `$${total.toFixed(2)}`;
 
-      await sendTemplate(from, 'detalle_producto', [lista1line, totalFmt]);
+      await sendInteractiveButtons(from, `Has seleccionado los siguientes productos:\n${lista1line}\n\nTotal: ${totalFmt}\n\n¿Añadir más a la orden?`, [
+        { id: "confirmar pedido", title: "Confirmar pedido" },
+        { id: "ver productos", title: "Ver productos" },
+        { id: "cancelar pedido", title: "Cancelar pedido" }
+      ]);
       return;
     }
 

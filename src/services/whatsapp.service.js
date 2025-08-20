@@ -127,3 +127,30 @@ export async function sendOrderSummaryWithFallback(to, listaSingleLine, totalFmt
     await sendTextMessage(to, fallback);
   }
 }
+
+// nueva función para enviar botones dinámicos porque nmeta me bloqueo la cuenta y me limito los que ya tengo
+export async function sendInteractiveButtons(to, bodyText, buttons) {
+  return axios.post(url, {
+    messaging_product: "whatsapp",
+    to,
+    type: "interactive",
+    interactive: {
+      type: "button",
+      body: { text: bodyText },
+      action: {
+        buttons: buttons.map(btn => ({
+          type: "reply",
+          reply: {
+            id: btn.id,
+            title: btn.title
+          }
+        }))
+      }
+    }
+  }, {
+    headers: {
+      Authorization: `Bearer ${env.whatsappToken}`,
+      "Content-Type": "application/json"
+    }
+  });
+}
