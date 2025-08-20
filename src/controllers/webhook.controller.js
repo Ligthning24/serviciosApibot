@@ -1,6 +1,6 @@
 // src/controllers/webhook.controller.js
 import { env } from '../config/env.js';
-import { sendTextMessage, sendTemplate } from '../services/whatsapp.service.js';
+import { sendTextMessage, sendTemplate, sendInteractiveButtons } from '../services/whatsapp.service.js';
 import {
   getMenuText,
   parseIdsCsvToCounts,
