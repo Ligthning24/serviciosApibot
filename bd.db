@@ -1,0 +1,56 @@
+
+CREATE TABLE productos (
+    id_producto SERIAL PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    precio NUMERIC(10,2) NOT NULL,
+    id_menu INT NOT NULL REFERENCES menu(id_menu),
+    disponible BOOLEAN NOT NULL DEFAULT TRUE
+);
+CREATE TABLE orden_pedido (
+    id_compra SERIAL PRIMARY KEY,
+    fecha TIMESTAMP NOT NULL DEFAULT NOW(),
+    total NUMERIC(10,2) NOT NULL,
+    instrucciones TEXT,
+    estado VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE'
+);
+
+CREATE TABLE orden_detalle (
+    id_detalle SERIAL PRIMARY KEY,
+    id_compra INT NOT NULL REFERENCES orden_pedido(id_compra),
+    id_producto INT NOT NULL REFERENCES productos(id_producto),
+    cantidad INT NOT NULL,
+    precio_unitario NUMERIC(10,2) NOT NULL
+);
+
+
+-- Refresco
+INSERT INTO productos (nombre, precio, id_menu, disponible)
+VALUES ('Refresco', 25.00, 1, TRUE);
+
+-- Coctel grande
+INSERT INTO productos (nombre, precio, id_menu, disponible)
+VALUES ('Coctel grande', 130.00, 1, TRUE);
+
+-- Coctel chico
+INSERT INTO productos (nombre, precio, id_menu, disponible)
+VALUES ('Coctel chico', 90.00, 1, TRUE);
+
+-- Tostada
+INSERT INTO productos (nombre, precio, id_menu, disponible)
+VALUES ('Tostada', 60.00, 1, TRUE);
+
+-- Camarones a la diabla 
+INSERT INTO productos (nombre, precio, id_menu, disponible)
+VALUES ('Camarones a la diabla', 180.00, 1, TRUE);
+
+
+
+
+
+
+
+INSERT INTO productos (nombre, precio, id_menu, disponible)
+VALUES ('Camarones a la diabla', 180.00, 1, TRUE);
+
+INSERT INTO productos (nombre, precio, id_menu, disponible)
+VALUES ('Ceviche mixto', 150.00, 1, TRUE);

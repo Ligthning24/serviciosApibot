@@ -1,6 +1,5 @@
 // src/state/session.store.js
 // Sencillo almacenamiento en memoria por usuario (clave = phone).
-// Estructura de sesión: { cart: Map<number, number> }
 
 const sessions = new Map();
 

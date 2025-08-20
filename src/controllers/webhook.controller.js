@@ -6,8 +6,8 @@ import {
   parseIdsCsvToCounts,
   mergeCounts,
   buildItemsFromCart,
-  formatOrderList,            
-  formatOrderListSingleLine   
+  formatOrderList,
+  formatOrderListSingleLine
 } from '../services/menu.service.js';
 import { getSession, clearSession } from '../state/session.store.js';
 
@@ -38,7 +38,31 @@ export async function handleWebhook(req, res) {
     if (!body?.object || !msg) return; // puede ser status
 
     const from = msg.from; // msisdn (ej. 521...)
-    const text = (msg.text?.body || '').trim().toLowerCase();
+    let text = (msg.text?.body || '').trim().toLowerCase();
+
+    // 👉 Detectar si es respuesta de botón interactivo
+    if (msg.type === "interactive") {
+      if (msg.interactive.type === "button_reply") {
+        const buttonId = msg.interactive.button_reply.id;
+        console.log("🔘 Botón presionado:", buttonId);
+
+        switch (buttonId) {
+          case "ver_productos":
+            text = "ver productos";
+            break;
+          case "ayuda":
+            text = "ayuda";
+            break;
+          case "confirmar_pedido":
+            text = "confirmar pedido";
+            break;
+          case "cancelar_pedido":
+            text = "cancelar pedido";
+            break;
+        }
+      }
+    }
+
     console.log(`📩 ${from}: ${text}`);
 
     // Sesión por usuario (carrito = Map)
@@ -59,59 +83,61 @@ export async function handleWebhook(req, res) {
       return;
     }
 
-    //Agregar productos por IDs
+    // Agregar productos por IDs
     if (numberListRegex.test(text)) {
-      // Sumar nuevos IDs al carrito acumulado (Map)
       const newCounts = parseIdsCsvToCounts(text);
-      session.cart = mergeCounts(session.cart, newCounts);
 
-      // Construir items + total desde carrito
-      const { items, total } = await buildItemsFromCart(session.cart);
-      if (!items.length) {
-        await sendTextMessage(from, 'No encontré productos con esos IDs. Inténtalo de nuevo o escribe "menu".');
+      // IDs válidos del menú (ajústalos si tu menú cambia dinámicamente)
+      const validIds = [1, 2, 3, 4, 5, 6];
+      const invalidIds = [...newCounts.keys()].filter(id => !validIds.includes(id));
+
+      if (invalidIds.length > 0) {
+        await sendTextMessage(
+          from,
+          `⚠️ Los siguientes productos no existen: ${invalidIds.join(", ")}. Selecciona solo los que aparecen en el menú.`
+        );
         return;
       }
 
-      // Variables para plantilla (sin saltos en {{1}})
+      // Sumar al carrito existente
+      session.cart = mergeCounts(session.cart, newCounts);
+
+      const { items, total } = await buildItemsFromCart(session.cart);
+      if (!items.length) {
+        await sendTextMessage(from, 'No encontré productos válidos. Inténtalo de nuevo o escribe "menu".');
+        return;
+      }
+
+      // Variables para plantilla
       const lista1line = formatOrderListSingleLine(items);
       const totalFmt = `$${total.toFixed(2)}`;
 
-      // Envia la plantilla detalle_producto
-      // Debe tener 2 variables en el cuerpo: {{1}} = lista, {{2}} = total
       await sendTemplate(from, 'detalle_producto', [lista1line, totalFmt]);
       return;
     }
 
-    //Confirmar pedido (texto ya está en minúsculas)
-    if (text === 'Confirmar pedido') {
-      const sess = getSession(from); // { cart: Map() }
+    // Confirmar pedido
+    if (text === 'confirmar pedido') {
+      const sess = getSession(from);
       if (!sess || !sess.cart || sess.cart.size === 0) {
         await sendTextMessage(from, 'No tienes productos en tu carrito. Escribe "menu" para empezar.');
         return;
       }
 
       const { items, total } = await buildItemsFromCart(sess.cart);
-      const lista = formatOrderList(items); // multilínea con viñetas
+      const lista = formatOrderList(items);
 
-      const resumen = `✅ Tu pedido ha sido registrado.
-
-Detalle del pedido:
-${lista}
-
-Total: $${total.toFixed(2)}
-
-Gracias por tu compra 🎉`;
+      const resumen = `✅ Tu pedido ha sido registrado.\n\nDetalle del pedido:\n${lista}\n\nTotal: $${total.toFixed(2)}\n\nGracias por tu compra 🎉`;
 
       await sendTextMessage(from, resumen);
 
-      // Limpieza correcta (Map)
-      clearSession(from);// borra toda la sesión del usuario
+      clearSession(from);
       return;
     }
 
     // Cancelar pedido
     if (text === 'cancelar pedido') {
-      await sendTemplate(from, 'pedido_cancelado').catch(async () => {
+      await sendTemplate(from, 'cancelar_pedido').catch(async () => {
         await sendTextMessage(from, '❌ Pedido cancelado.');
       });
       clearSession(from);
@@ -121,12 +147,11 @@ Gracias por tu compra 🎉`;
     // Ayuda
     if (text === 'ayuda') {
       await sendTemplate(from, 'ayuda').catch(async () => {
-        await sendTemplate(from, 'ayuda' );
+        await sendTextMessage(from, 'Aquí tienes la ayuda disponible.');
       });
       return;
     }
 
-  
     // Por defecto
     await sendTextMessage(
       from,
