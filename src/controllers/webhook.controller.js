@@ -41,8 +41,9 @@ export async function handleWebhook(req, res) {
     let text = (msg.text?.body || '').trim().toLowerCase();
 
     // 👉 Detectar si es respuesta de botón interactivo
+    // 👉 Detectar si es respuesta de botón interactivo
     if (msg.type === "interactive" && msg.interactive?.type === "button_reply") {
-      const buttonId = msg.interactive.button_reply.id;
+      const buttonId = msg.interactive.button_reply.id;   // <-- tal cual de la plantilla
       const buttonTitle = msg.interactive.button_reply.title;
       console.log(`🔘 Botón presionado: ${buttonId} (${buttonTitle})`);
 
@@ -64,6 +65,7 @@ export async function handleWebhook(req, res) {
           text = "";
       }
     }
+
 
 
     console.log(`📩 ${from}: ${text}`);
