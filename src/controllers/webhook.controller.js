@@ -35,6 +35,7 @@ export async function handleWebhook(req, res) {
   try {
     const body = req.body;
     const msg = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+    console.log("📦 BODY COMPLETO:", JSON.stringify(body, null, 2));
     if (!body?.object || !msg) return; // puede ser status
 
     const from = msg.from; // msisdn (ej. 521...)
