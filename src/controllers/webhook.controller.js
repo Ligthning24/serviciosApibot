@@ -41,27 +41,30 @@ export async function handleWebhook(req, res) {
     let text = (msg.text?.body || '').trim().toLowerCase();
 
     // 👉 Detectar si es respuesta de botón interactivo
-    if (msg.type === "interactive") {
-      if (msg.interactive.type === "button_reply") {
-        const buttonId = msg.interactive.button_reply.id;
-        console.log("🔘 Botón presionado:", buttonId);
+    if (msg.type === "interactive" && msg.interactive?.type === "button_reply") {
+      const buttonId = msg.interactive.button_reply.id;
+      const buttonTitle = msg.interactive.button_reply.title;
+      console.log(`🔘 Botón presionado: ${buttonId} (${buttonTitle})`);
 
-        switch (buttonId) {
-          case "Ver productos":
-            text = "Ver productos";
-            break;
-          case "Ayuda":
-            text = "Ayuda";
-            break;
-          case "Confirmar pedido":
-            text = "Confirmar pedido";
-            break;
-          case "Cancelar pedido":
-            text = "Cancelar pedido";
-            break;
-        }
+      // Normalizamos el flujo usando "text"
+      switch (buttonId.toLowerCase()) {
+        case "ver productos":
+          text = "ver productos";
+          break;
+        case "ayuda":
+          text = "ayuda";
+          break;
+        case "confirmar pedido":
+          text = "confirmar pedido";
+          break;
+        case "cancelar pedido":
+          text = "cancelar pedido";
+          break;
+        default:
+          text = "";
       }
     }
+
 
     console.log(`📩 ${from}: ${text}`);
 
