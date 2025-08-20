@@ -47,17 +47,17 @@ export async function handleWebhook(req, res) {
         console.log("🔘 Botón presionado:", buttonId);
 
         switch (buttonId) {
-          case "ver_productos":
-            text = "ver productos";
+          case "Ver productos":
+            text = "Ver productos";
             break;
-          case "ayuda":
-            text = "ayuda";
+          case "Ayuda":
+            text = "Ayuda";
             break;
-          case "confirmar_pedido":
-            text = "confirmar pedido";
+          case "Confirmar pedido":
+            text = "Confirmar pedido";
             break;
-          case "cancelar_pedido":
-            text = "cancelar pedido";
+          case "Cancelar pedido":
+            text = "Cancelar pedido";
             break;
         }
       }
@@ -137,7 +137,7 @@ export async function handleWebhook(req, res) {
 
     // Cancelar pedido
     if (text === 'cancelar pedido') {
-      await sendTemplate(from, 'cancelar_pedido').catch(async () => {
+      await sendTemplate(from, 'cancelar pedido').catch(async () => {
         await sendTextMessage(from, '❌ Pedido cancelado.');
       });
       clearSession(from);
