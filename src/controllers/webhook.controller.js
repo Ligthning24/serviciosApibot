@@ -1,6 +1,10 @@
 // src/controllers/webhook.controller.js
 import { env } from '../config/env.js';
-import { sendTextMessage, sendTemplate, sendInteractiveButtons } from '../services/whatsapp.service.js';
+import { 
+  sendTextMessage, 
+  sendTemplate, 
+  sendInteractiveButtons 
+} from '../services/whatsapp.service.js';
 import {
   getMenuText,
   parseIdsCsvToCounts,
@@ -34,51 +38,42 @@ export async function handleWebhook(req, res) {
 
   try {
     const body = req.body;
-    const msg = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-    console.log("📦 BODY COMPLETO:", JSON.stringify(body, null, 2));
-    if (!body?.object || !msg) return; // puede ser status
+    const value = body?.entry?.[0]?.changes?.[0]?.value;
+    if (!body?.object || !value) return;
 
+    // Distinguimos entre mensajes y estatus
+    if (!value.messages) {
+      console.log("📊 Status recibido:", JSON.stringify(value.statuses, null, 2));
+      return;
+    }
+
+    const msg = value.messages[0];
     const from = msg.from; // msisdn (ej. 521...)
     let text = (msg.text?.body || '').trim().toLowerCase();
 
-    // 👉 Detectar si es respuesta de botón interactivo
+    // Detectar si es respuesta de botón interactivo
     if (msg.type === "interactive" && msg.interactive?.type === "button_reply") {
-      const buttonId = msg.interactive.button_reply.id;   // <-- tal cual de la plantilla
+      const buttonId = msg.interactive.button_reply.id;
       const buttonTitle = msg.interactive.button_reply.title;
-      console.log(`🔘 Botón presionado: ${buttonId} (${buttonTitle})`);
+      console.log(` Botón presionado: ${buttonId} (${buttonTitle})`);
 
-      // Normalizamos el flujo usando "text"
-      switch (buttonId.toLowerCase()) {
-        case "ver productos":
-          text = "ver productos";
-          break;
-        case "ayuda":
-          text = "ayuda";
-          break;
-        case "confirmar pedido":
-          text = "confirmar pedido";
-          break;
-        case "cancelar pedido":
-          text = "cancelar pedido";
-          break;
-        default:
-          text = "";
-      }
+      text = buttonId.toLowerCase(); // normalizamos
     }
-
-
 
     console.log(`📩 ${from}: ${text}`);
 
     // Sesión por usuario (carrito = Map)
     const session = getSession(from);
 
-    // Saludo
+    // Saludo inicial
     if (text === 'hola') {
-      await sendInteractiveButtons(from, '¡Hola y bienvenido!\nBienvenido(a) a nuestro servicio de pedidos.\n\nSelecciona una opción:', [
-        { id: "ver productos", title: "Ver productos" },
-        { id: "ayuda", title: "Ayuda" }
-      ]);
+      await sendInteractiveButtons(from,
+        '¡Hola y bienvenido!\nBienvenido(a) a nuestro servicio de pedidos.\n\nSelecciona una opción:',
+        [
+          { id: "ver productos", title: "Ver productos" },
+          { id: "ayuda", title: "Ayuda" }
+        ]
+      );
       return;
     }
 
@@ -93,7 +88,7 @@ export async function handleWebhook(req, res) {
     if (numberListRegex.test(text)) {
       const newCounts = parseIdsCsvToCounts(text);
 
-      // id validos del menu que hay que ajustalos si el menu cambia dinámicamente
+      // IDs válidos del menú (ajusta según tus productos)
       const validIds = [1, 2, 3, 4, 5, 6];
       const invalidIds = [...newCounts.keys()].filter(id => !validIds.includes(id));
 
@@ -114,15 +109,18 @@ export async function handleWebhook(req, res) {
         return;
       }
 
-      // Variables para plantilla
       const lista1line = formatOrderListSingleLine(items);
       const totalFmt = `$${total.toFixed(2)}`;
 
-      await sendInteractiveButtons(from, `Has seleccionado los siguientes productos:\n${lista1line}\n\nTotal: ${totalFmt}\n\n¿Añadir más a la orden?`, [
-        { id: "confirmar pedido", title: "Confirmar pedido" },
-        { id: "ver productos", title: "Ver productos" },
-        { id: "cancelar pedido", title: "Cancelar pedido" }
-      ]);
+      // Enviar botones dinámicos en lugar de plantilla
+      await sendInteractiveButtons(from,
+        `Has seleccionado los siguientes productos:\n${lista1line}\n\nTotal: ${totalFmt}\n\n¿Qué deseas hacer?`,
+        [
+          { id: "confirmar pedido", title: "Confirmar pedido" },
+          { id: "ver productos", title: "Ver productos" },
+          { id: "cancelar pedido", title: "Cancelar pedido" }
+        ]
+      );
       return;
     }
 
@@ -147,7 +145,7 @@ export async function handleWebhook(req, res) {
 
     // Cancelar pedido
     if (text === 'cancelar pedido') {
-      await sendTemplate(from, 'cancelar pedido').catch(async () => {
+      await sendTemplate(from, 'pedido_cancelado').catch(async () => {
         await sendTextMessage(from, '❌ Pedido cancelado.');
       });
       clearSession(from);
@@ -165,7 +163,7 @@ export async function handleWebhook(req, res) {
     // Por defecto
     await sendTextMessage(
       from,
-      'No entendí tu mensaje. Por favor escribe "menu" para ver y elegir de nuevo los productos, o "confirmar pedido"/"cancelar pedido". Si necesitas ayuda escribe "Ayuda".'
+      'No entendí tu mensaje. Escribe "menu" para ver los productos, "confirmar pedido" o "cancelar pedido". Si necesitas ayuda escribe "Ayuda".'
     );
   } catch (err) {
     console.error('Error en webhook (async):', err);
